@@ -342,9 +342,23 @@ fetch(CSV_URL)
 
 // Flip logic
 const flipCard = document.getElementById('flipCard');
-document.getElementById('flipButton').onclick = () => flipCard.classList.add('flipped');
-document.getElementById('flipButtonBack').onclick = () => flipCard.classList.remove('flipped');
-document.getElementById('flipButtonBottom').onclick = () => flipCard.classList.remove('flipped');
+
+function scrollToCardTop() {
+  flipCard.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+document.getElementById('flipButton').onclick = () => {
+  flipCard.classList.add('flipped');
+  scrollToCardTop();
+};
+document.getElementById('flipButtonBack').onclick = () => {
+  flipCard.classList.remove('flipped');
+  scrollToCardTop();
+};
+document.getElementById('flipButtonBottom').onclick = () => {
+  flipCard.classList.remove('flipped');
+  scrollToCardTop();
+};
 
 // Time
 function updateTime() {
