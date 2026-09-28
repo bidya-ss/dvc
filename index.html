@@ -96,6 +96,10 @@ button {
   font-size: 1rem; transition: background 0.3s ease;
 }
 button:hover { background-color: #45a049; }
+.btn-row { display: flex; width: 100%; }
+.btn-row button { width: 50%; }
+.btn-row .btn-save { background-color: #2196F3; }
+.btn-row .btn-save:hover { background-color: #1e88e5; }
 
 .card-time-section {
   background-color: #333; color: #fff; display: flex;
@@ -168,7 +172,10 @@ button:hover { background-color: #45a049; }
 
         <div class="social-icons" id="socialIcons"></div>
       </div>
-      <button id="flipButton">Details</button>
+      <div class="btn-row">
+  <button id="saveContactBtn" class="btn-save"><i class="fa fa-user-plus"></i> Save Contact</button>
+  <button id="flipButton">Details</button>
+</div>
       <div class="card-time-section">
         <div id="dateFront"></div>
         <div id="timeFront"></div>
@@ -264,7 +271,10 @@ function buildCardFromRows(rows) {
   return card;
 }
 
+let cardData = null;
+  
 function renderCard(card) {
+  cardData = card;
   document.getElementById('loading').style.display = 'none';
   document.getElementById('flipCard').style.display = 'block';
 
@@ -360,6 +370,39 @@ document.getElementById('flipButtonBottom').onclick = () => {
   scrollToCardTop();
 };
 
+document.getElementById('flipButtonBottom').onclick = () => {
+  flipCard.classList.remove('flipped');
+  scrollToCardTop();
+};
+
+// Save Contact (vCard download)
+document.getElementById('saveContactBtn').onclick = () => {
+  if (!cardData) return;
+  const clean = v => (v || '').replace(/[\r\n]+/g, ' ').trim();
+  const lines = [
+    'BEGIN:VCARD',
+    'VERSION:3.0',
+    'FN:' + clean(cardData.name),
+    'TITLE:' + clean(cardData.designation),
+  ];
+  if (cardData.phone1) lines.push('TEL;TYPE=CELL:' + clean(cardData.phone1));
+  if (cardData.phone2) lines.push('TEL;TYPE=WORK:' + clean(cardData.phone2));
+  if (cardData.email)  lines.push('EMAIL;TYPE=INTERNET:' + clean(cardData.email));
+  lines.push('END:VCARD');
+
+  const blob = new Blob([lines.join('\r\n')], { type: 'text/vcard;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = (clean(cardData.name) || 'contact').replace(/\s+/g, '_') + '.vcf';
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+};
+
+
+  
 // Time
 function updateTime() {
   const now = new Date();
