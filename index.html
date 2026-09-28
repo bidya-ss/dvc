@@ -272,9 +272,17 @@ function buildCardFromRows(rows) {
 }
 
 let cardData = null;
+
+// Manual details (sheet ki jagah yahin se aayenge)
+const MANUAL = {
+  company: 'S Square Marketing Pvt. Ltd.',
+  address: 'Plot No S-3,70-71 & 76-77, Mancheswar Industrial Estate, Sector-A, Po-Rasulgarh, Bhubaneswar, Odisha, 751010.',
+  dob: '07-06-1991',   // dd-mm-yyyy
+  notes: 'GST NO: 21AAGCS5275A1ZR'
+};
   
 function renderCard(card) {
-  cardData = card;
+  cardData = Object.assign({}, card, MANUAL);
   document.getElementById('loading').style.display = 'none';
   document.getElementById('flipCard').style.display = 'block';
 
@@ -376,18 +384,62 @@ document.getElementById('flipButtonBottom').onclick = () => {
 };
 
 // Save Contact (vCard download)
+// Save Contact (vCard download)
 document.getElementById('saveContactBtn').onclick = () => {
   if (!cardData) return;
+
   const clean = v => (v || '').replace(/[\r\n]+/g, ' ').trim();
+  // vCard text escape (comma, semicolon, new line)
+  const esc = v => (v || '')
+    .replace(/\\/g, '\\\\')
+    .replace(/\r?\n/g, '\\n')
+    .replace(/,/g, '\\,')
+    .replace(/;/g, '\\;')
+    .trim();
+
+  // DOB ko YYYY-MM-DD mein badalna
+  function formatDob(d) {
+    d = clean(d);
+    let m = d.match(/^(\d{4})[-\/.](\d{1,2})[-\/.](\d{1,2})$/);
+    if (m) return `${m[1]}-${m[2].padStart(2,'0')}-${m[3].padStart(2,'0')}`;
+    m = d.match(/^(\d{1,2})[-\/.](\d{1,2})[-\/.](\d{4})$/);
+    if (m) return `${m[3]}-${m[2].padStart(2,'0')}-${m[1].padStart(2,'0')}`;
+    return '';
+  }
+
+  // Social icon (fa-facebook) se label banana (Facebook)
+  const socialLabel = icon => {
+    const n = (icon || '').replace(/^fa-/, '').replace(/-(square|official)$/, '');
+    return n.charAt(0).toUpperCase() + n.slice(1);
+  };
+
   const lines = [
     'BEGIN:VCARD',
     'VERSION:3.0',
-    'FN:' + clean(cardData.name),
-    'TITLE:' + clean(cardData.designation),
+    'FN:' + esc(cardData.name),
+    'N:;' + esc(cardData.name) + ';;;',
   ];
+  if (cardData.company)     lines.push('ORG:' + esc(cardData.company));
+  if (cardData.designation) lines.push('TITLE:' + esc(cardData.designation));
   if (cardData.phone1) lines.push('TEL;TYPE=CELL:' + clean(cardData.phone1));
   if (cardData.phone2) lines.push('TEL;TYPE=WORK:' + clean(cardData.phone2));
   if (cardData.email)  lines.push('EMAIL;TYPE=INTERNET:' + clean(cardData.email));
+  if (cardData.address) lines.push('ADR;TYPE=WORK:;;' + esc(cardData.address) + ';;;;');
+
+  const bday = formatDob(cardData.dob);
+  if (bday) lines.push('BDAY:' + bday);
+
+  // Saare social links
+  let idx = 1;
+  (cardData.socialIcons || []).forEach(s => {
+    const link = clean(s.link);
+    if (!/^https?:\/\//i.test(link)) return;
+    lines.push(`item${idx}.URL:${link}`);
+    lines.push(`item${idx}.X-ABLabel:${socialLabel(s.icon)}`);
+    idx++;
+  });
+
+  if (cardData.notes) lines.push('NOTE:' + esc(cardData.notes));
   lines.push('END:VCARD');
 
   const blob = new Blob([lines.join('\r\n')], { type: 'text/vcard;charset=utf-8' });
